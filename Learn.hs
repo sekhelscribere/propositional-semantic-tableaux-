@@ -54,8 +54,8 @@ intList :: Eq a => [a] -> [a] -> [a]
 intList xs ys = [ x | x <- xs++ys, (x `elem` xs) && (x `elem` ys)]
 -- intersection operation on lists
 
-isTaut :: Form -> Bool
-isTaut p =  foldr (&&) True (map (\x -> [] == (fst x) `intList` (snd x))  finals) where
+isSat :: Form -> Bool
+isSat p =  foldr (&&) True (map (\x -> [] == (fst x) `intList` (snd x))  finals) where
     finals = (getFinalLeaves . semTabl) p
 
 
