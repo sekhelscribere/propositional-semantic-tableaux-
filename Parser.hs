@@ -1,9 +1,8 @@
-module PropParser where
+module Parser where
 
 import Control.Applicative
 import Learn
-import System.Console.Haskeline (putHistory)
-import System.Win32 (xBUTTON1)
+
 
 newtype Parser a = Parser { runParser :: String -> Maybe (a, String) }
 
@@ -133,7 +132,7 @@ parsing :: String -> Maybe Form
 parsing s = runParser expr s >>= \(s, xs) -> Just s
 
 
-validCheck :: IO ()
+{--validCheck :: IO ()
 validCheck = do
     putStrLn "Write down your formula:"
     phi <- getLine
@@ -143,3 +142,10 @@ validCheck = do
 extract :: Maybe Form -> String
 extract (Just x) = (show . not . isSat) (Neg x) 
 extract Nothing = "You have given an il-formed formula"
+--}
+
+extract :: Maybe Form -> Form
+extract (Just p) = p 
+extract Nothing = taut
+
+getForm = extract . parsing

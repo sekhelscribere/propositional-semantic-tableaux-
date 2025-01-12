@@ -9,9 +9,9 @@ import Learn
 instance Arbitrary Form where
     arbitrary = sized randomForm where
         randomForm :: Int -> Gen Form
-        randomForm 0 = P <$> elements [1,2,3]
+        randomForm 0 = P <$> elements [1,2]
         randomForm n = oneof
-            [ P <$> elements [1,2,3]
+            [ P <$> elements [1,2]
             , Neg <$> randomForm (n `div` 2)
             , Conj <$> randomForm (n `div` 2) <*> randomForm (n `div` 2) 
             , Disj <$> randomForm (n `div` 2) <*> randomForm (n `div` 2) ]

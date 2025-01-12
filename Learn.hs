@@ -18,50 +18,71 @@ instance Show Form where
  
 
 
-data TreeForm =  Leaf [Form] [Form] | Nodes TreeForm TreeForm
-    deriving (Eq,Ord, Show)
+
 
 -- in semantic tableaux, the left leaf represents
 -- formulae that are true, while the right leaf 
 -- represents formulae that are false
 
+data BinaryTree a = Leaf a
+                  | Node a (BinaryTree a) (BinaryTree a)
+    deriving (Show, Eq)
+
+newtype LTree = BinaryTree ([Form], [Form])
+{--
+In semantic tableaux, each leaf contains a pair
+of lists of formulae ([Form], [Form]), where the first
+list is a list of true formulae, while the second -- 
+list of false formulae21    
+--}
 
 
+semTabl :: ([Form], [Form]) -> BinaryTree ([Form], [Form])
+semTabl ([], []) = Leaf ([], [])
+semTabl ((P n):xs, ys) =  addToLeaves (P n) (semTabl (xs, ys))
+semTabl ((Neg p):xs,ys) = semTabl (xs, p:ys)
+semTabl ((Conj p q):xs,ys) = semTabl (p:q:xs, ys)
+semTabl((Disj p q):xs, ys) = Node ((Disj p q):xs, ys) (semTabl (p:xs, ys)) (semTabl (q:xs, ys))
+semTabl (xs, (P n):ys) =   addNegToLeaves (P n) (semTabl (xs, ys))
+semTabl (xs, (Neg p):ys) = semTabl (p:xs, ys)
+semTabl (xs, (Conj p q):ys) = semTabl ((Disj (Neg p) (Neg q)):xs, ys)
+semTabl (xs, (Disj p q):ys) = semTabl ((Conj (Neg p) (Neg q)):xs, ys)
 
+                     
 
-getFinalLeaves :: TreeForm -> [([Form], [Form])]
-getFinalLeaves (Leaf xs ys) = [(xs, ys)]
-getFinalLeaves (Nodes x y) = (getFinalLeaves x) ++ (getFinalLeaves y)
+addNegToLeaves :: Form -> BinaryTree ([Form], [Form]) -> BinaryTree ([Form], [Form])
+addNegToLeaves p (Leaf (xs,ys)) = Leaf (xs, p:ys)
+addNegToLeaves p (Node (xs, ys) a b) = Node (xs, p:ys) (addNegToLeaves p a) (addNegToLeaves p b)
 
-addTrees :: TreeForm -> TreeForm -> TreeForm
-addTrees (Leaf as bs) (Leaf xs ys) = Leaf (as++xs) (bs++ys)
-addTrees (Nodes  a b) (Nodes x y) = Nodes (Nodes (addTrees a x) (addTrees a y)) ( Nodes (addTrees b x) (addTrees b y))
-addTrees (Leaf as bs) (Nodes x y) = Nodes (addTrees (Leaf as bs) x) (addTrees (Leaf as bs) y)
-addTrees (Nodes x y) (Leaf as bs) = addTrees (Leaf as bs) (Nodes x y)
+addToLeaves :: Form -> BinaryTree ([Form], [Form]) -> BinaryTree ([Form], [Form])
+addToLeaves p (Leaf (xs,ys)) = Leaf(p:xs, ys)
+addToLeaves p (Node (xs, ys) a b) = Node (p:xs, ys) (addToLeaves p a) (addToLeaves p b)
 
-semTabl :: Form -> TreeForm
-semTabl (P n) = Leaf [P n] []
-semTabl (Neg (P n)) = Leaf [] [P n]
-semTabl (Disj p q) = Nodes (semTabl p) (semTabl q)
-semTabl (Conj p q) = (semTabl p) `addTrees` (semTabl q)
-semTabl(Neg(Disj p q)) = (semTabl (Neg p)) `addTrees` (semTabl (Neg q)) 
-semTabl(Neg(Conj p q)) = semTabl (Disj (Neg p) (Neg q))
-semTabl (Neg(Neg p)) = semTabl p
+                                            
 
-taut :: Form
-taut = Disj (Neg (P 1)) (P 1)
-
+getFinalLeaves :: BinaryTree ([Form], [Form]) -> [([Form], [Form])]
+getFinalLeaves (Leaf (xs, ys)) = [(xs, ys)]
+getFinalLeaves (Node (xs, ys) a b) = (getFinalLeaves a) ++ (getFinalLeaves b)
 
 intList :: Eq a => [a] -> [a] -> [a]
 intList xs ys = [ x | x <- xs++ys, (x `elem` xs) && (x `elem` ys)]
 -- intersection operation on lists
 
 isLeavesSat :: Form -> [Bool]
-isLeavesSat p =   (map (\x -> [] == (fst x) `intList` (snd x))  finals) where
-    finals = (getFinalLeaves . semTabl) p
+isLeavesSat p =   map (\x -> null $ (fst x) `intList` (snd x))  finals where
+    finals = (getFinalLeaves . semTabl) ([p], [])
 
 isSat :: Form -> Bool
-isSat p = True `elem` (isLeavesSat p)   
+isSat p = or (isLeavesSat p) 
+
+taut :: Form
+taut = Disj (Neg (P 1)) (P 1)
+
+testForm :: Form -> BinaryTree ([Form], [Form])
+testForm p =semTabl ([p], [])
+
+
+
 
 type Assign = Integer -> Bool
 
